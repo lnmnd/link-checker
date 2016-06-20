@@ -2,6 +2,7 @@ import sys
 import time
 import logging
 import signal
+from collections import deque
 from urllib import request
 import html.parser
 from urllib import parse
@@ -108,9 +109,9 @@ class LinkChecker(pykka.ThreadingActor):
         self._timer = Timer.start(self, timeout).proxy()
         self._fetchers = [Fetcher.start(self, user_agent).proxy()
                           for _ in range(num_fetchers)]
-        self._free_fetchers = set()
+        self._free_fetchers = deque()
         for fetcher in self._fetchers:
-            self._free_fetchers.add(fetcher)
+            self._free_fetchers.append(fetcher)
 
     def run(self):
         if self._running:
@@ -138,7 +139,7 @@ class LinkChecker(pykka.ThreadingActor):
         if not self._running:
             return
 
-        self._free_fetchers.add(fetcher)
+        self._free_fetchers.append(fetcher)
         self._timer.reset()
 
         status = "OK" if 200 <= code <= 300 else "BAD"
@@ -161,7 +162,7 @@ class LinkChecker(pykka.ThreadingActor):
             return
 
         print("ERROR[Cannot fetch url] {}".format(url), flush=True)
-        self._free_fetchers.add(fetcher)
+        self._free_fetchers.append(fetcher)
         self._being_checked.discard(url)
         self._check_urls()
 
@@ -180,7 +181,7 @@ class LinkChecker(pykka.ThreadingActor):
 
         url = self._to_check.pop()
         self._being_checked.add(url)
-        fetcher = self._free_fetchers.pop()
+        fetcher = self._free_fetchers.popleft()
         fetcher.fetch(url)
         self._check_urls()
 
