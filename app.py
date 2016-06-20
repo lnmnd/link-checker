@@ -1,12 +1,10 @@
 import sys
-import sys
 import time
 import logging
 import signal
 from urllib import request
 import html.parser
 from urllib import parse
-import posixpath
 import pykka
 import pykka.debug
 
