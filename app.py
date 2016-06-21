@@ -176,14 +176,11 @@ class LinkChecker(pykka.ThreadingActor):
                     self._to_check.add(full_url)
 
     def _check_urls(self):
-        if not self._to_check or not self._free_fetchers:
-            return
-
-        url = self._to_check.pop()
-        self._being_checked.add(url)
-        fetcher = self._free_fetchers.popleft()
-        fetcher.fetch(url)
-        self._check_urls()
+        while self._to_check and self._free_fetchers:
+            url = self._to_check.pop()
+            self._being_checked.add(url)
+            fetcher = self._free_fetchers.popleft()
+            fetcher.fetch(url)
 
 
 def end_callback():
