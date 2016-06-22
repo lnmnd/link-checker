@@ -168,8 +168,8 @@ class LinkChecker(pykka.ThreadingActor):
         for link in links:
             if same_domain(self._base_url, link):
                 full_url = parse.urljoin(url, link)
-                all = self._to_check | self._checked | self._being_checked
-                is_new = full_url not in all
+                all_urls = self._to_check | self._checked | self._being_checked
+                is_new = full_url not in all_urls
                 if is_new and http_url(full_url):
                     self._to_check.add(full_url)
 
