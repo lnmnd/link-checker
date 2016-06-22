@@ -109,9 +109,7 @@ class LinkChecker(pykka.ThreadingActor):
         self._timer = Timer.start(self, timeout).proxy()
         self._fetchers = [Fetcher.start(self, user_agent).proxy()
                           for _ in range(num_fetchers)]
-        self._free_fetchers = deque()
-        for fetcher in self._fetchers:
-            self._free_fetchers.append(fetcher)
+        self._free_fetchers = deque(self._fetchers)
 
     def run(self):
         if self._running:
