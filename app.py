@@ -96,20 +96,17 @@ class Fetcher(pykka.ThreadingActor):
 
 
 class Checker(pykka.ThreadingActor):
-    def __init__(self, base_url, num_fetchers, timeout,
-                 user_agent, end_callback):
+    def __init__(self, base_url, end_callback, create_timer, create_fetchers):
         super().__init__()
         self._running = False
+        self._timer = create_timer(self)
+        self._fetchers = create_fetchers(self)
+        self._free_fetchers = deque(self._fetchers)
         self._base_url = base_url
         self._to_check = set()
         self._being_checked = set()
         self._checked = set()
         self._end_callback = end_callback
-
-        self._timer = Timer.start(self, timeout).proxy()
-        self._fetchers = [Fetcher.start(self, user_agent).proxy()
-                          for _ in range(num_fetchers)]
-        self._free_fetchers = deque(self._fetchers)
 
     def run(self):
         if self._running:
@@ -193,7 +190,11 @@ if __name__ == "__main__":
     num_fetchers = 8
     timeout = 3
     user_agent = "LinkChecker/0.1"
-    checker = (Checker.start(url, num_fetchers, timeout,
-                             user_agent, end_callback)
+    create_timer = lambda checker: Timer.start(checker, timeout).proxy()
+    create_fetchers = lambda checker: [Fetcher.start(checker, user_agent)
+                                       .proxy()
+                                       for _ in range(num_fetchers)]
+    checker = (Checker.start(url, end_callback,
+                             create_timer, create_fetchers)
                .proxy())
     checker.run()
