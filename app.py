@@ -17,14 +17,14 @@ if __name__ == "__main__":
         print("usage: app.py url")
         sys.exit()
     url = sys.argv[1]
-    num_fetchers = 8
     timeout = 3
+    rate = 10
     user_agent = "LinkChecker/0.1"
     create_timer = lambda parent: checker.Timer.start(parent, timeout).proxy()
-    create_fetchers = lambda parent: [checker.Fetcher.start(parent, user_agent)
-                                      .proxy()
-                                      for _ in range(num_fetchers)]
+    create_pulse = lambda parent: checker.Pulse.start(parent, 1 / rate).proxy()
+    create_fetcher = lambda parent: (checker.Fetcher.start(parent, user_agent)
+                                     .proxy())
     (checker.Checker.start(url, end_callback,
-                           create_timer, create_fetchers)
+                           create_timer, create_pulse, create_fetcher)
      .proxy()
      .run())

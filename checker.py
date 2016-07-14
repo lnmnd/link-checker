@@ -62,6 +62,21 @@ class Timer(pykka.ThreadingActor):
             self.actor_ref.proxy().count()
 
 
+class Pulse(pykka.ThreadingActor):
+    def __init__(self, parent, rate):
+        super(Pulse, self).__init__()
+        self._parent = parent
+        self._rate = rate
+
+    def run(self):
+        self.beat()
+
+    def beat(self):
+        time.sleep(self._rate)
+        self._parent.beat()
+        self.actor_ref.proxy().beat()
+
+
 class Fetcher(pykka.ThreadingActor):
     def __init__(self, parent, user_agent):
         super().__init__()
@@ -83,18 +98,21 @@ class Fetcher(pykka.ThreadingActor):
             content_type = ""
             content = b""
         except Exception:
-            self._parent.cannot_fetch_url(self, url)
+            self._parent.cannot_fetch_url(url)
+            self.stop()
             return
-        self._parent.url_fetched(self, url, code, content_type, content)
+        self._parent.url_fetched(url, code, content_type, content)
+        self.stop()
 
 
 class Checker(pykka.ThreadingActor):
-    def __init__(self, base_url, end_callback, create_timer, create_fetchers):
+    def __init__(self, base_url, end_callback,
+                 create_timer, create_pulse, create_fetcher):
         super().__init__()
         self._running = False
         self._timer = create_timer(self)
-        self._fetchers = create_fetchers(self)
-        self._free_fetchers = deque(self._fetchers)
+        self._pulse = create_pulse(self)
+        self._create_fetcher = create_fetcher
         self._base_url = base_url
         self._to_check = set()
         self._being_checked = set()
@@ -105,11 +123,12 @@ class Checker(pykka.ThreadingActor):
         if self._running:
             return
 
+        self._running = True
         print("checking {}...".format(self._base_url), flush=True)
         self._to_check.add(self._base_url)
         self._timer.run()
-        self._check_urls()
-        self._running = True
+        self._pulse.run()
+        self.beat()
 
     def timeout_reached(self):
         if not self._running:
@@ -117,17 +136,15 @@ class Checker(pykka.ThreadingActor):
 
         print("timeout reached", flush=True)
         self._timer.stop()
-        for fetcher in self._fetchers:
-            fetcher.stop()
+        self._pulse.stop()
         self._running = False
         self.stop()
         self._end_callback()
 
-    def url_fetched(self, fetcher, url, code, content_type, content):
+    def url_fetched(self, url, code, content_type, content):
         if not self._running:
             return
 
-        self._free_fetchers.append(fetcher)
         self._timer.reset()
 
         status = "OK" if 200 <= code <= 300 else "BAD"
@@ -143,16 +160,13 @@ class Checker(pykka.ThreadingActor):
         self._analyze_url_links(url, links)
         self._being_checked.remove(url)
         self._checked.add(url)
-        self._check_urls()
 
-    def cannot_fetch_url(self, fetcher, url):
+    def cannot_fetch_url(self, url):
         if not self._running:
             return
 
         print("ERROR[Cannot fetch url] {}".format(url), flush=True)
-        self._free_fetchers.append(fetcher)
         self._being_checked.discard(url)
-        self._check_urls()
 
     def _analyze_url_links(self, url, links):
         for link in links:
@@ -163,9 +177,14 @@ class Checker(pykka.ThreadingActor):
                 if is_new and http_url(full_url):
                     self._to_check.add(full_url)
 
-    def _check_urls(self):
-        while self._to_check and self._free_fetchers:
+    def beat(self):
+        if not self._running:
+            return
+
+        try:
             url = self._to_check.pop()
-            self._being_checked.add(url)
-            fetcher = self._free_fetchers.popleft()
-            fetcher.fetch(url)
+        except KeyError:
+            return
+        self._being_checked.add(url)
+        fetcher = self._create_fetcher(self)
+        fetcher.fetch(url)
