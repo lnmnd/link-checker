@@ -9,7 +9,7 @@ signal.signal(signal.SIGUSR1, pykka.debug.log_thread_tracebacks)
 
 
 def end_callback():
-    print("END", flush=True)
+    print("END")
 
 
 if __name__ == "__main__":
