@@ -3,6 +3,7 @@ from urllib import request
 import html.parser
 from urllib import parse
 import pykka
+import pykka.gevent
 
 
 class LinkParser(html.parser.HTMLParser):
@@ -39,7 +40,7 @@ def http_url(url):
     return scheme == "http" or scheme == "https"
 
 
-class Timer(pykka.ThreadingActor):
+class Timer(pykka.gevent.GeventActor):
     def __init__(self, parent, timeout):
         super().__init__()
         self._parent = parent
@@ -61,7 +62,7 @@ class Timer(pykka.ThreadingActor):
             self.actor_ref.proxy().count()
 
 
-class Pulse(pykka.ThreadingActor):
+class Pulse(pykka.gevent.GeventActor):
     def __init__(self, parent, rate):
         super(Pulse, self).__init__()
         self._parent = parent
@@ -76,7 +77,7 @@ class Pulse(pykka.ThreadingActor):
         self.actor_ref.proxy().beat()
 
 
-class Fetcher(pykka.ThreadingActor):
+class Fetcher(pykka.gevent.GeventActor):
     def __init__(self, parent, user_agent):
         super().__init__()
         self._parent = parent
