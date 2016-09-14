@@ -4,13 +4,16 @@ import argparse
 import logging
 import signal
 import pykka.debug
+import gevent
+import gevent.queue
 import checker
 
 logging.basicConfig(level=logging.DEBUG)
 signal.signal(signal.SIGUSR1, pykka.debug.log_thread_tracebacks)
 
 
-def end_callback():
+def end_proc(mailbox):
+    mailbox.get()
     print("END")
 
 
@@ -21,6 +24,8 @@ if __name__ == "__main__":
     parser.add_argument("--rate", type=float, default=10)
     parser.add_argument("--useragent", type=str, default="LinkChecker/0.1")
     args = parser.parse_args()
+
+    end_mailbox = gevent.queue.Queue()
 
     create_timer = (lambda parent: checker.Timer.start(parent=parent,
                                                        timeout=args.timeout)
@@ -33,9 +38,11 @@ if __name__ == "__main__":
                                             user_agent=args.useragent)
                       .proxy())
     (checker.Checker.start(base_url=args.url,
-                           end_callback=end_callback,
+                           end_mailbox=end_mailbox,
                            create_timer=create_timer,
                            create_pulse=create_pulse,
                            create_fetcher=create_fetcher)
      .proxy()
      .run())
+
+    gevent.joinall([gevent.spawn(end_proc, end_mailbox)])

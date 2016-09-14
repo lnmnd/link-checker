@@ -105,8 +105,8 @@ class Fetcher(pykka.gevent.GeventActor):
         self.stop()
 
 
-class Checker(pykka.ThreadingActor):
-    def __init__(self, base_url, end_callback,
+class Checker(pykka.gevent.GeventActor):
+    def __init__(self, base_url, end_mailbox,
                  create_timer, create_pulse, create_fetcher):
         super().__init__()
         self._running = False
@@ -117,7 +117,7 @@ class Checker(pykka.ThreadingActor):
         self._to_check = set()
         self._being_checked = set()
         self._checked = set()
-        self._end_callback = end_callback
+        self._end_mailbox = end_mailbox
 
     def run(self):
         if self._running:
@@ -139,7 +139,7 @@ class Checker(pykka.ThreadingActor):
         self._pulse.stop()
         self._running = False
         self.stop()
-        self._end_callback()
+        self._end_mailbox.put(True)
 
     def url_fetched(self, url, code, content_type, content):
         if not self._running:
