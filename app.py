@@ -22,13 +22,20 @@ if __name__ == "__main__":
     parser.add_argument("--useragent", type=str, default="LinkChecker/0.1")
     args = parser.parse_args()
 
-    create_timer = (lambda parent:
-                    checker.Timer.start(parent, args.timeout).proxy())
-    create_pulse = (lambda parent:
-                    checker.Pulse.start(parent, 1 / args.rate).proxy())
+    create_timer = (lambda parent: checker.Timer.start(parent=parent,
+                                                       timeout=args.timeout)
+                    .proxy())
+    create_pulse = (lambda parent: checker.Pulse.start(parent=parent,
+                                                       rate=1 / args.rate)
+                    .proxy())
     create_fetcher = (lambda parent:
-                      checker.Fetcher.start(parent, args.useragent).proxy())
-    (checker.Checker.start(args.url, end_callback,
-                           create_timer, create_pulse, create_fetcher)
+                      checker.Fetcher.start(parent=parent,
+                                            user_agent=args.useragent)
+                      .proxy())
+    (checker.Checker.start(base_url=args.url,
+                           end_callback=end_callback,
+                           create_timer=create_timer,
+                           create_pulse=create_pulse,
+                           create_fetcher=create_fetcher)
      .proxy()
      .run())
