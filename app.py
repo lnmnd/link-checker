@@ -20,8 +20,9 @@ if __name__ == "__main__":
     parser.add_argument("--timeout", type=int, default=3)
     parser.add_argument("--rate", type=float, default=10)
     parser.add_argument("--user-agent", type=str, default="LinkChecker/dev")
-    parser.add_argument("--dev", dest="dev", action="store_true")
-    parser.add_argument("--no-dev", dest="dev", action="store_false")
+    dev_group = parser.add_mutually_exclusive_group()
+    dev_group.add_argument("--dev", dest="dev", action="store_true")
+    dev_group.add_argument("--no-dev", dest="dev", action="store_false")
     parser.set_defaults(dev=False)
     args = parser.parse_args()
 
