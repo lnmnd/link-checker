@@ -16,13 +16,20 @@ def end_proc(mailbox):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("url", type=str)
-    parser.add_argument("--timeout", type=int, default=3)
-    parser.add_argument("--rate", type=float, default=10)
-    parser.add_argument("--user-agent", type=str, default="LinkChecker/dev")
+    parser.add_argument("url", type=str, help="Url to check.")
+    parser.add_argument("--timeout", type=int, default=3,
+                        help="Seconds to wait for a new url "
+                        "before deciding to end the program. Defaults to 3.")
+    parser.add_argument("--rate", type=float, default=10,
+                        help="Requests per second. Defaults to 10.")
+    parser.add_argument("--user-agent", type=str, default="LinkChecker/dev",
+                        help=("User agent header for requests. "
+                              "Defaults to \"LinkChecker/dev\"."))
     dev_group = parser.add_mutually_exclusive_group()
-    dev_group.add_argument("--dev", dest="dev", action="store_true")
-    dev_group.add_argument("--no-dev", dest="dev", action="store_false")
+    dev_group.add_argument("--dev", dest="dev", action="store_true",
+                           help="Run in dev mode.")
+    dev_group.add_argument("--no-dev", dest="dev", action="store_false",
+                           help="Don't run in dev mode. Default mode.")
     parser.set_defaults(dev=False)
     args = parser.parse_args()
 
