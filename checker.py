@@ -147,7 +147,7 @@ class Checker(pykka.gevent.GeventActor):
 
         self._timer.reset()
 
-        status = "OK" if 200 <= code <= 300 else "BAD"
+        status = "OK" if 200 <= code < 300 else "BAD"
         print("{}[{}] {}".format(status, code, url))
 
         is_html = "text/html" in content_type
