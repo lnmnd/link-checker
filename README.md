@@ -1,5 +1,7 @@
 # Link Checker
 
+Follows internal links of a website and checks if they return successful status code.
+
 ## Usage
 
 ```sh
