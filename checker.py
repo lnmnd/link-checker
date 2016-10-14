@@ -124,7 +124,7 @@ class Checker(pykka.gevent.GeventActor):
             return
 
         self._running = True
-        print("checking {}...".format(self._base_url))
+        print("checking {}...".format(self._base_url), flush=True)
         self._to_check.add(self._base_url)
         self._timer.run()
         self._pulse.run()
@@ -134,7 +134,7 @@ class Checker(pykka.gevent.GeventActor):
         if not self._running:
             return
 
-        print("timeout reached")
+        print("timeout reached", flush=True)
         self._timer.stop()
         self._pulse.stop()
         self._running = False
@@ -148,7 +148,7 @@ class Checker(pykka.gevent.GeventActor):
         self._timer.reset()
 
         status = "OK" if 200 <= code < 300 else "BAD"
-        print("{}[{}] {}".format(status, code, url))
+        print("{}[{}] {}".format(status, code, url), flush=True)
 
         is_html = "text/html" in content_type
         try:
@@ -165,7 +165,7 @@ class Checker(pykka.gevent.GeventActor):
         if not self._running:
             return
 
-        print("ERROR[Cannot fetch url] {}".format(url))
+        print("ERROR[Cannot fetch url] {}".format(url), flush=True)
         self._being_checked.discard(url)
 
     def _analyze_url_links(self, url, links):
