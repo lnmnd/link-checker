@@ -150,11 +150,12 @@ class Checker(pykka.gevent.GeventActor):
         status = "OK" if 200 <= code < 300 else "BAD"
         print("{}[{}] {}".format(status, code, url), flush=True)
 
-        is_html = "text/html" in content_type
-        try:
-            links = (links_from_html(content.decode("utf-8"))
-                     if is_html else [])
-        except UnicodeDecodeError:
+        if "text/html" in content_type:
+            try:
+                links = links_from_html(content.decode("utf-8"))
+            except UnicodeDecodeError:
+                links = []
+        else:
             links = []
 
         self._analyze_url_links(url, links)
