@@ -168,15 +168,6 @@ class Checker(pykka.gevent.GeventActor):
         print("ERROR[Cannot fetch url] {}".format(url), flush=True)
         self._being_checked.discard(url)
 
-    def _analyze_url_links(self, url, links):
-        for link in links:
-            if same_domain(self._base_url, link):
-                full_url = parse.urljoin(url, link)
-                all_urls = self._to_check | self._checked | self._being_checked
-                is_new = full_url not in all_urls
-                if is_new and http_url(full_url):
-                    self._to_check.add(full_url)
-
     def beat(self):
         if not self._running:
             return
@@ -188,3 +179,12 @@ class Checker(pykka.gevent.GeventActor):
         self._being_checked.add(url)
         fetcher = self._create_fetcher(self)
         fetcher.fetch(url)
+
+    def _analyze_url_links(self, url, links):
+        for link in links:
+            if same_domain(self._base_url, link):
+                full_url = parse.urljoin(url, link)
+                all_urls = self._to_check | self._checked | self._being_checked
+                is_new = full_url not in all_urls
+                if is_new and http_url(full_url):
+                    self._to_check.add(full_url)
