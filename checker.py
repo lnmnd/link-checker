@@ -183,11 +183,13 @@ class Checker(pykka.gevent.GeventActor):
 
     def _analyze_url_links(self, url, links):
         for link in links:
-            if same_domain(self._base_url, link):
-                full_url = parse.urljoin(url, link)
-                if http_url(full_url):
-                    is_new = (full_url not in self._being_checked and
-                              full_url not in self._to_check and
-                              full_url not in self._checked)
-                    if is_new:
-                        self._to_check.add(full_url)
+            if not same_domain(self._base_url, link):
+                continue
+            full_url = parse.urljoin(url, link)
+            if not http_url(full_url):
+                continue
+            is_new = (full_url not in self._being_checked and
+                      full_url not in self._to_check and
+                      full_url not in self._checked)
+            if is_new:
+                self._to_check.add(full_url)
