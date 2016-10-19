@@ -40,28 +40,6 @@ def http_url(url):
     return scheme == "http" or scheme == "https"
 
 
-class Timer(pykka.gevent.GeventActor):
-    def __init__(self, parent, timeout):
-        super().__init__()
-        self._parent = parent
-        self._timeout = timeout
-        self._seconds = 0
-
-    def run(self):
-        self.count()
-
-    def reset(self):
-        self._seconds = 0
-
-    def count(self):
-        time.sleep(1)
-        self._seconds += 1
-        if self._seconds == self._timeout:
-            self._parent.timeout_reached()
-        else:
-            self.actor_ref.proxy().count()
-
-
 class Pulse(pykka.gevent.GeventActor):
     def __init__(self, parent, rate):
         super(Pulse, self).__init__()
@@ -106,11 +84,9 @@ class Fetcher(pykka.gevent.GeventActor):
 
 
 class Checker(pykka.gevent.GeventActor):
-    def __init__(self, base_url, end_mailbox,
-                 create_timer, create_pulse, create_fetcher):
+    def __init__(self, base_url, end_mailbox, create_pulse, create_fetcher):
         super().__init__()
         self._running = False
-        self._timer = create_timer(self)
         self._pulse = create_pulse(self)
         self._create_fetcher = create_fetcher
         self._base_url = base_url
@@ -126,26 +102,12 @@ class Checker(pykka.gevent.GeventActor):
         self._running = True
         print("checking {}...".format(self._base_url), flush=True)
         self._to_check.add(self._base_url)
-        self._timer.run()
         self._pulse.run()
         self.beat()
-
-    def timeout_reached(self):
-        if not self._running:
-            return
-
-        print("timeout reached", flush=True)
-        self._timer.stop()
-        self._pulse.stop()
-        self._running = False
-        self.stop()
-        self._end_mailbox.put(True)
 
     def url_fetched(self, url, code, content_type, content):
         if not self._running:
             return
-
-        self._timer.reset()
 
         status = "OK" if 200 <= code < 300 else "BAD"
         print("{}[{}] {}".format(status, code, url), flush=True)
@@ -161,6 +123,7 @@ class Checker(pykka.gevent.GeventActor):
         self._analyze_url_links(url, links)
         self._being_checked.remove(url)
         self._checked.add(url)
+        self._end_if_no_work()
 
     def cannot_fetch_url(self, url):
         if not self._running:
@@ -193,3 +156,10 @@ class Checker(pykka.gevent.GeventActor):
                       full_url not in self._checked)
             if is_new:
                 self._to_check.add(full_url)
+
+    def _end_if_no_work(self):
+        if not self._being_checked and not self._to_check:
+            self._pulse.stop()
+            self._running = False
+            self.stop()
+            self._end_mailbox.put(True)

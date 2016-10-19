@@ -17,9 +17,6 @@ def end_proc(mailbox):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("url", type=str, help="Url to check.")
-    parser.add_argument("--timeout", type=int, default=3,
-                        help="Seconds to wait for a new url "
-                        "before deciding to end the program. Defaults to 3.")
     parser.add_argument("--rate", type=float, default=10,
                         help="Requests per second. Defaults to 10.")
     parser.add_argument("--user-agent", type=str, default="LinkChecker/dev",
@@ -39,9 +36,6 @@ if __name__ == "__main__":
 
     end_mailbox = gevent.queue.Queue()
 
-    create_timer = (lambda parent: checker.Timer.start(parent=parent,
-                                                       timeout=args.timeout)
-                    .proxy())
     create_pulse = (lambda parent: checker.Pulse.start(parent=parent,
                                                        rate=1 / args.rate)
                     .proxy())
@@ -51,7 +45,6 @@ if __name__ == "__main__":
                       .proxy())
     (checker.Checker.start(base_url=args.url,
                            end_mailbox=end_mailbox,
-                           create_timer=create_timer,
                            create_pulse=create_pulse,
                            create_fetcher=create_fetcher)
      .proxy()
