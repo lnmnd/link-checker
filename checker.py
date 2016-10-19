@@ -130,6 +130,7 @@ class Checker(pykka.gevent.GeventActor):
 
         print("ERROR[Cannot fetch url] {}".format(url), flush=True)
         self._being_checked.discard(url)
+        self._end_if_no_work()
 
     def beat(self):
         if not self._running:
