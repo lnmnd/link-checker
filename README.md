@@ -6,10 +6,9 @@ Follows internal links of a website and checks if they return successful status 
 
 ```sh
 $ python app.py http://localhost
-checking http://localhost...
 OK[200] http://localhost
-BAD[404] http://localhost/manual
-END
+OK[200] http://localhost/about
+BAD[404] http://localhost/abuot
 ```
 
 ## Installation

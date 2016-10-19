@@ -100,7 +100,6 @@ class Checker(pykka.gevent.GeventActor):
             return
 
         self._running = True
-        print("checking {}...".format(self._base_url), flush=True)
         self._to_check.add(self._base_url)
         self._pulse.run()
         self.beat()

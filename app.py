@@ -11,7 +11,6 @@ import checker
 
 def end_proc(mailbox):
     mailbox.get()
-    print("END", flush=True)
 
 
 if __name__ == "__main__":
