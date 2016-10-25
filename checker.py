@@ -1,31 +1,20 @@
 import time
+import io
 from urllib import request
-import html.parser
 from urllib import parse
+from lxml import etree
 import pykka
 import pykka.gevent
 
 
-class LinkParser(html.parser.HTMLParser):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.links = set()
-
-    def handle_starttag(self, tag, attrs):
-        if not tag == "a":
-            return
-
-        for key, value in attrs:
-            if key == "href":
-                link_no_fragment = value.split("#")[0]
-                self.links.add(link_no_fragment)
-                break
+def href(element):
+    return element.attrib["href"].split("#")[0]
 
 
 def links_from_html(html):
-    parser = LinkParser()
-    parser.feed(html)
-    return parser.links
+    parser = etree.HTMLParser()
+    root = etree.parse(io.StringIO(html), parser)
+    return map(href, root.xpath("//a[@href]"))
 
 
 def same_domain(urla, urlb):

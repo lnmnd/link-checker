@@ -13,7 +13,7 @@ BAD[404] http://localhost/abuot
 
 ## Installation
 
-Requires Python >= 3.3
+Requires Python >= 3.3, libxml2 and libxslt.
 
 ```sh
 $ pip install -r requirements.txt
