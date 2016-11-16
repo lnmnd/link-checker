@@ -8,25 +8,25 @@ import pykka.gevent
 
 
 def href(element):
-    return element.attrib["href"].split("#")[0]
+    return element.attrib['href'].split('#')[0]
 
 
 def links_from_html(html):
     parser = etree.HTMLParser()
     root = etree.parse(io.StringIO(html), parser)
-    return map(href, root.xpath("//a[@href]"))
+    return map(href, root.xpath('//a[@href]'))
 
 
 def same_domain(urla, urlb):
     purla = parse.urlparse(urla)
     purlb = parse.urlparse(urlb)
-    nonetloc = purla.netloc == "" or purlb.netloc == ""
+    nonetloc = purla.netloc == '' or purlb.netloc == ''
     return nonetloc or purla.netloc == purlb.netloc
 
 
 def http_url(url):
     scheme = parse.urlparse(url).scheme
-    return scheme == "http" or scheme == "https"
+    return scheme == 'http' or scheme == 'https'
 
 
 class Pulse(pykka.gevent.GeventActor):
@@ -52,18 +52,18 @@ class Fetcher(pykka.gevent.GeventActor):
 
     def fetch(self, url):
         headers = {
-            "User-Agent": self._user_agent,
+            'User-Agent': self._user_agent,
         }
         try:
             req = request.Request(url, headers=headers)
             res = request.urlopen(req)
             code = res.getcode()
-            content_type = res.getheader("content-type")
+            content_type = res.getheader('content-type')
             content = res.read()
         except request.HTTPError as e:
-            code = getattr(e, "code", 0)
-            content_type = ""
-            content = b""
+            code = getattr(e, 'code', 0)
+            content_type = ''
+            content = b''
         except Exception:
             self._parent.cannot_fetch_url(url)
             self.stop()
@@ -97,12 +97,12 @@ class Checker(pykka.gevent.GeventActor):
         if not self._running:
             return
 
-        status = "OK" if 200 <= code < 300 else "BAD"
-        print("{}[{}] {}".format(status, code, url), flush=True)
+        status = 'OK' if 200 <= code < 300 else 'BAD'
+        print('{}[{}] {}'.format(status, code, url), flush=True)
 
-        if "text/html" in content_type:
+        if 'text/html' in content_type:
             try:
-                links = links_from_html(content.decode("utf-8"))
+                links = links_from_html(content.decode('utf-8'))
             except UnicodeDecodeError:
                 links = []
         else:
@@ -117,7 +117,7 @@ class Checker(pykka.gevent.GeventActor):
         if not self._running:
             return
 
-        print("ERROR[Cannot fetch url] {}".format(url), flush=True)
+        print('ERROR[Cannot fetch url] {}'.format(url), flush=True)
         self._being_checked.discard(url)
         self._end_if_no_work()
 
