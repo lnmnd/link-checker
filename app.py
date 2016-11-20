@@ -40,7 +40,8 @@ if __name__ == '__main__':
                     .proxy())
     create_fetcher = (lambda parent:
                       checker.Fetcher.start(parent=parent,
-                                            user_agent=args.user_agent)
+                                            user_agent=args.user_agent,
+                                            base_url=args.url)
                       .proxy())
     (checker.Checker.start(base_url=args.url,
                            end_mailbox=end_mailbox,

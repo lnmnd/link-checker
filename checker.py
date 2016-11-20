@@ -45,10 +45,11 @@ class Pulse(pykka.gevent.GeventActor):
 
 
 class Fetcher(pykka.gevent.GeventActor):
-    def __init__(self, parent, user_agent):
+    def __init__(self, parent, user_agent, base_url):
         super().__init__()
         self._parent = parent
         self._user_agent = user_agent
+        self._base_url = base_url
 
     def fetch(self, url):
         headers = {
@@ -68,8 +69,21 @@ class Fetcher(pykka.gevent.GeventActor):
             self._parent.cannot_fetch_url(url)
             self.stop()
             return
-        self._parent.url_fetched(url, code, content_type, content)
+
+        if 'text/html' in content_type:
+            try:
+                links = links_from_html(content.decode('utf-8'))
+            except UnicodeDecodeError:
+                links = []
+        else:
+            links = []
+
+        links = filter(self._wanted, links)
+        self._parent.url_fetched(url, code, links)
         self.stop()
+
+    def _wanted(self, link):
+        return same_domain(self._base_url, link)
 
 
 class Checker(pykka.gevent.GeventActor):
@@ -93,20 +107,12 @@ class Checker(pykka.gevent.GeventActor):
         self._pulse.run()
         self.beat()
 
-    def url_fetched(self, url, code, content_type, content):
+    def url_fetched(self, url, code, links):
         if not self._running:
             return
 
         status = 'OK' if 200 <= code < 300 else 'BAD'
         print('{}[{}] {}'.format(status, code, url), flush=True)
-
-        if 'text/html' in content_type:
-            try:
-                links = links_from_html(content.decode('utf-8'))
-            except UnicodeDecodeError:
-                links = []
-        else:
-            links = []
 
         self._analyze_url_links(url, links)
         self._being_checked.remove(url)
@@ -135,8 +141,6 @@ class Checker(pykka.gevent.GeventActor):
 
     def _analyze_url_links(self, url, links):
         for link in links:
-            if not same_domain(self._base_url, link):
-                continue
             full_url = parse.urljoin(url, link)
             if not http_url(full_url):
                 continue
