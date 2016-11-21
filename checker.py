@@ -60,11 +60,11 @@ class Fetcher(pykka.gevent.GeventActor):
             res = request.urlopen(req)
             code = res.getcode()
             content_type = res.getheader('content-type')
-            content = res.read()
+            get_content = lambda: res.read()
         except request.HTTPError as e:
             code = getattr(e, 'code', 0)
             content_type = ''
-            content = b''
+            get_content = lambda: b''
         except Exception:
             self._parent.cannot_fetch_url(url)
             self.stop()
@@ -72,7 +72,7 @@ class Fetcher(pykka.gevent.GeventActor):
 
         if 'text/html' in content_type:
             try:
-                links = links_from_html(content.decode('utf-8'))
+                links = links_from_html(get_content().decode('utf-8'))
             except UnicodeDecodeError:
                 links = []
         else:
