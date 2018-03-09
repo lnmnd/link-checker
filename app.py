@@ -3,9 +3,9 @@ monkey.patch_all()
 import argparse
 import logging
 import signal
-import pykka.debug
 import gevent
 import gevent.queue
+import actor
 import checker
 
 
@@ -31,23 +31,22 @@ if __name__ == '__main__':
 
     if args.dev:
         logging.basicConfig(level=logging.DEBUG)
-        signal.signal(signal.SIGUSR1, pykka.debug.log_thread_tracebacks)
 
     end_mailbox = gevent.queue.Queue()
 
-    create_pulse = (lambda parent: checker.Pulse.start(parent=parent,
-                                                       rate=1 / args.rate)
-                    .proxy())
+    create_pulse = (lambda parent: actor.spawn(checker.Pulse,
+                                               parent=parent,
+                                               rate=1 / args.rate))
     create_fetcher = (lambda parent:
-                      checker.Fetcher.start(parent=parent,
-                                            user_agent=args.user_agent,
-                                            base_url=args.url)
-                      .proxy())
-    (checker.Checker.start(base_url=args.url,
-                           end_mailbox=end_mailbox,
-                           create_pulse=create_pulse,
-                           create_fetcher=create_fetcher)
-     .proxy()
+                      actor.spawn(checker.Fetcher,
+                                  parent=parent,
+                                  user_agent=args.user_agent,
+                                  base_url=args.url))
+    (actor.spawn(checker.Checker,
+                 base_url=args.url,
+                 end_mailbox=end_mailbox,
+                 create_pulse=create_pulse,
+                 create_fetcher=create_fetcher)
      .run())
 
     gevent.joinall([gevent.spawn(end_proc, end_mailbox)])

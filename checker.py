@@ -3,8 +3,6 @@ import io
 from urllib import request
 from urllib import parse
 from lxml import etree
-import pykka
-import pykka.gevent
 
 
 def href(element):
@@ -29,9 +27,9 @@ def http_url(url):
     return scheme == 'http' or scheme == 'https'
 
 
-class Pulse(pykka.gevent.GeventActor):
-    def __init__(self, parent, rate):
-        super(Pulse, self).__init__()
+class Pulse:
+    def __init__(self, ref, parent, rate):
+        self._ref = ref
         self._parent = parent
         self._rate = rate
 
@@ -41,12 +39,12 @@ class Pulse(pykka.gevent.GeventActor):
     def beat(self):
         time.sleep(self._rate)
         self._parent.beat()
-        self.actor_ref.proxy().beat()
+        self._ref.beat()
 
 
-class Fetcher(pykka.gevent.GeventActor):
-    def __init__(self, parent, user_agent, base_url):
-        super().__init__()
+class Fetcher:
+    def __init__(self, ref, parent, user_agent, base_url):
+        self._ref = ref
         self._parent = parent
         self._user_agent = user_agent
         self._base_url = base_url
@@ -67,7 +65,7 @@ class Fetcher(pykka.gevent.GeventActor):
             get_content = lambda: b''
         except Exception:
             self._parent.cannot_fetch_url(url)
-            self.stop()
+            self._ref.stop()
             return
 
         if 'text/html' in content_type:
@@ -80,15 +78,15 @@ class Fetcher(pykka.gevent.GeventActor):
 
         links = filter(self._wanted, links)
         self._parent.url_fetched(url, code, links)
-        self.stop()
+        self._ref.stop()
 
     def _wanted(self, link):
         return same_domain(self._base_url, link)
 
 
-class Checker(pykka.gevent.GeventActor):
-    def __init__(self, base_url, end_mailbox, create_pulse, create_fetcher):
-        super().__init__()
+class Checker:
+    def __init__(self, ref, base_url, end_mailbox, create_pulse, create_fetcher):
+        self._ref = ref
         self._running = False
         self._pulse = create_pulse(self)
         self._create_fetcher = create_fetcher
@@ -154,5 +152,5 @@ class Checker(pykka.gevent.GeventActor):
         if not self._being_checked and not self._to_check:
             self._pulse.stop()
             self._running = False
-            self.stop()
+            self._ref.stop()
             self._end_mailbox.put(True)
