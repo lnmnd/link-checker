@@ -1,5 +1,4 @@
 import time
-import io
 from urllib import request
 from urllib import parse
 from lxml import etree
@@ -11,7 +10,7 @@ def href(element):
 
 def links_from_html(html):
     parser = etree.HTMLParser()
-    root = etree.parse(io.StringIO(html), parser)
+    root = etree.fromstring(html, parser)
     return map(href, root.xpath('//a[@href]'))
 
 
