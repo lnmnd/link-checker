@@ -68,10 +68,7 @@ class Fetcher:
             return
 
         if 'text/html' in content_type:
-            try:
-                links = links_from_html(get_content().decode('utf-8'))
-            except UnicodeDecodeError:
-                links = []
+            links = links_from_html(get_content())
         else:
             links = []
 
