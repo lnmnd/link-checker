@@ -56,7 +56,8 @@ class Fetcher:
             req = request.Request(url, headers=headers)
             res = request.urlopen(req)
             code = res.getcode()
-            content_type = res.getheader('content-type')
+            content_type = res.getheader('content-type',
+                                         default='application/octet-stream')
             get_content = lambda: res.read()
         except request.HTTPError as e:
             code = getattr(e, 'code', 0)
